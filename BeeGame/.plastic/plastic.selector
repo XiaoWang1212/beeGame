@@ -1,0 +1,4 @@
+repository "BeeGame 2025-07-02_23-27-29/BeeGame@33262689040892@cloud"
+  path "/"
+    br "/main"
+    co "/main"
