@@ -21,7 +21,7 @@ public class ClickDetector : MonoBehaviour
                 if (hit.collider.CompareTag("Hornet"))
                 {
                     // 擊中虎頭蜂
-                    GameManager.instance.AddScore(GameManager.instance.scorePerHornet);
+                    ShooterGameManager.instance.AddScore(ShooterGameManager.instance.scorePerHornet);
                     Destroy(hit.collider.gameObject); // 銷毀虎頭蜂
                     // TODO: 播放擊中虎頭蜂音效/特效
                     Debug.Log("擊中虎頭蜂！");
@@ -29,7 +29,7 @@ public class ClickDetector : MonoBehaviour
                 else if (hit.collider.CompareTag("Bee"))
                 {
                     // 誤傷西洋蜜蜂
-                    GameManager.instance.AddScore(GameManager.instance.penaltyPerBee);
+                    ShooterGameManager.instance.AddScore(ShooterGameManager.instance.penaltyPerBee);
                     // 誤傷後銷毀蜜蜂 (或者可以讓它短暫消失再重新生成，更符合「受驚飛走」)
                     Destroy(hit.collider.gameObject);
                     // TODO: 播放誤傷蜜蜂音效/特效
