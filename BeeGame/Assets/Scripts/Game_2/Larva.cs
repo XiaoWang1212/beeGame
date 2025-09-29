@@ -5,7 +5,6 @@ public class Larva : MonoBehaviour
     [Header("幼蟲設置")]
     public Sprite larvaSprite;
     public Color larvaColor = Color.white;
-    // 移除 larvaSize，使用 Inspector 中設置的 Scale
 
     private SpriteRenderer spriteRenderer;
     private CircleCollider2D larvaCollider;
@@ -13,18 +12,37 @@ public class Larva : MonoBehaviour
     private bool isActive = true;
     private bool isPickedUp = false;
     private Vector3 originalPosition;
-    private Vector3 originalScale; // 保存原始 Scale
+    private Vector3 originalScale;
 
     public bool IsActive => isActive && !isPickedUp;
     public int LarvaID => larvaID;
 
-    public void Initialize(int id)
+    // 獲取當前應該使用的鑷子
+    private Tweezers GetCurrentTweezers()
+    {
+        var gameManager = QueenRearingGameManager.Instance;
+        if (gameManager == null) return null;
+
+        // 檢查是否在教學模式
+        if (Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)
+        {
+            return gameManager.tutorialTweezers;
+        }
+        else
+        {
+            return gameManager.tweezers;
+        }
+    }
+
+    public void Initialize(int id = 0)
     {
         larvaID = id;
         originalPosition = transform.position;
-        originalScale = transform.localScale; // 保存您設置的原始 Scale
+        originalScale = transform.localScale;
         SetupVisuals();
         SetupCollider();
+        
+        Debug.Log($"幼蟲 {larvaID} 初始化完成，位置: {originalPosition}");
     }
 
     private void SetupVisuals()
@@ -35,7 +53,6 @@ public class Larva : MonoBehaviour
             spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
         }
 
-        // 使用您設置的 Sprite，如果沒有則使用程式生成的
         if (larvaSprite != null)
         {
             spriteRenderer.sprite = larvaSprite;
@@ -46,7 +63,6 @@ public class Larva : MonoBehaviour
         }
 
         spriteRenderer.color = larvaColor;
-        // 不修改 Scale，保持您在 Inspector 中設置的值
     }
 
     private void SetupCollider()
@@ -59,19 +75,114 @@ public class Larva : MonoBehaviour
 
         larvaCollider.radius = 0.5f;
         larvaCollider.isTrigger = false;
+        
+        Debug.Log($"幼蟲 {larvaID} Collider 設置完成");
     }
 
     void OnMouseDown()
     {
-        // 檢查是否有鑷子被選中
         var gameManager = QueenRearingGameManager.Instance;
+        if (gameManager == null) return;
+
+        Debug.Log($"幼蟲 {larvaID} 被點擊，當前工具: {gameManager.GetSelectedTool()}, 教學模式: {(Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)}");
+
+        // 檢查是否有鑷子被選中
         if (gameManager.GetSelectedTool() == QueenRearingGameManager.Tool.Tweezers && IsActive)
         {
-            var tweezers = gameManager.tweezers;
-            if (tweezers != null && tweezers.IsSelected)
+            var tweezers = GetCurrentTweezers(); // 使用當前模式對應的鑷子
+            Debug.Log($"獲取到的鑷子: {(tweezers != null ? tweezers.name : "null")}");
+            
+            if (tweezers != null)
             {
-                tweezers.TryPickupLarva(this);
+                Debug.Log($"鑷子狀態 - IsSelected: {tweezers.IsSelected}, HasLarva: {tweezers.HasLarva}");
+                
+                if (tweezers.IsSelected)
+                {
+                    bool result = tweezers.TryPickupLarva(this);
+                    Debug.Log($"嘗試夾取幼蟲結果: {result}");
+                    
+                    // 通知教學系統幼蟲被移動
+                    if (result && Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)
+                    {
+                        // 這裡先不通知，等幼蟲真正放到杯子裡再通知
+                        Debug.Log("幼蟲被鑷子夾取，等待放置到杯子");
+                    }
+                }
+                else
+                {
+                    Debug.Log("鑷子沒有被選中");
+                }
             }
+            else
+            {
+                Debug.LogError($"無法獲取鑷子引用！教學模式: {(Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)}");
+            }
+        }
+        else if (gameManager.GetSelectedTool() != QueenRearingGameManager.Tool.Tweezers)
+        {
+            Debug.Log("請先選擇鑷子工具才能夾取幼蟲");
+        }
+        else if (!IsActive)
+        {
+            Debug.Log("幼蟲已被收集，無法再次夾取");
+        }
+    }
+
+    void OnMouseEnter()
+    {
+        if (IsActive)
+        {
+            var gameManager = QueenRearingGameManager.Instance;
+            if (gameManager != null && gameManager.GetSelectedTool() == QueenRearingGameManager.Tool.Tweezers)
+            {
+                var tweezers = GetCurrentTweezers(); // 使用當前模式對應的鑷子
+                if (tweezers != null && tweezers.IsSelected && !tweezers.HasLarva)
+                {
+                    if (Game_2.CursorManager.Instance != null)
+                    {
+                        Game_2.CursorManager.Instance.SetHandCursor();
+                    }
+
+                    Debug.Log($"鑷子懸停在幼蟲 {larvaID} 上 - 顯示 hand cursor");
+                }
+            }
+        }
+    }
+
+    void OnMouseExit()
+    {
+        if (IsActive)
+        {
+            var gameManager = QueenRearingGameManager.Instance;
+            if (gameManager != null && gameManager.GetSelectedTool() == QueenRearingGameManager.Tool.Tweezers)
+            {
+                var tweezers = GetCurrentTweezers(); // 使用當前模式對應的鑷子
+                if (tweezers != null && tweezers.IsSelected)
+                {
+                    if (tweezers.HasLarva)
+                    {
+                        if (Game_2.CursorManager.Instance != null)
+                        {
+                            Game_2.CursorManager.Instance.SetHandCursor();
+                        }
+                    }
+                    else
+                    {
+                        if (Game_2.CursorManager.Instance != null)
+                        {
+                            Game_2.CursorManager.Instance.SetDefaultCursor();
+                        }
+                    }
+                    return;
+                }
+            }
+
+            if (Game_2.CursorManager.Instance != null)
+            {
+                Game_2.CursorManager.Instance.SetDefaultCursor();
+            }
+
+            Debug.Log($"鑷子離開幼蟲 {larvaID}");
         }
     }
 
@@ -80,13 +191,14 @@ public class Larva : MonoBehaviour
         isPickedUp = pickedUp;
         if (pickedUp)
         {
-            larvaCollider.enabled = false; // 禁用碰撞器避免重複點擊
+            larvaCollider.enabled = false;
         }
         else
         {
             larvaCollider.enabled = true;
         }
-        // 不修改 Scale
+        
+        Debug.Log($"幼蟲 {larvaID} 拾取狀態設為: {pickedUp}");
     }
 
     public void CollectToCup(SpecialCup cup)
@@ -94,10 +206,19 @@ public class Larva : MonoBehaviour
         isActive = false;
         isPickedUp = false;
 
-        // 直接移動到杯子位置，不用動畫
         transform.position = cup.GetLarvaPosition();
-        
-        // 不修改 Scale，保持原始大小
+
+        // 通知教學系統和遊戲管理器
+        if (Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)
+        {
+            // 通知教學系統幼蟲已移動
+            var gameManager = QueenRearingGameManager.Instance;
+            if (gameManager != null)
+            {
+                gameManager.OnLarvaMoved(); // 這會增加 collectedLarvae 並通知教學系統
+            }
+        }
+
         Debug.Log($"幼蟲 {larvaID} 被收集到杯子 {cup.CupID}");
     }
 
@@ -106,7 +227,6 @@ public class Larva : MonoBehaviour
         isPickedUp = false;
         larvaCollider.enabled = true;
         transform.position = originalPosition;
-        // 不修改 Scale，保持原始大小
         Debug.Log($"幼蟲 {larvaID} 回到原位");
     }
 
@@ -117,31 +237,9 @@ public class Larva : MonoBehaviour
         larvaCollider.enabled = true;
         transform.position = originalPosition;
         transform.SetParent(null);
-        // 確保恢復到您設置的原始 Scale
         transform.localScale = originalScale;
         Debug.Log($"幼蟲 {larvaID} 已重置");
     }
-
-    // 移除 OnMouseEnter 和 OnMouseExit 中的大小調整
-    void OnMouseEnter()
-    {
-        if (IsActive)
-        {
-            // 不修改大小，可以添加其他 hover 效果，比如改變顏色
-            // spriteRenderer.color = Color.yellow;
-        }
-    }
-
-    void OnMouseExit()
-    {
-        if (IsActive)
-        {
-            // 恢復原始顏色
-            // spriteRenderer.color = larvaColor;
-        }
-    }
-
-    // ... 其他方法保持不變 ...
 
     private Sprite CreateLarvaSprite()
     {

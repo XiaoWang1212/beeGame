@@ -29,8 +29,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.85635984, y: -0.007201627, z: -9.96042}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.16, y: 0.16, z: 0.16}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -72,8 +72,8 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
-    newSize: {x: 1, y: 1}
+    oldSize: {x: 3.46, y: 5.55}
+    newSize: {x: 3.46, y: 5.55}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
@@ -123,13 +123,13 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: -1280160343
   m_SortingLayer: 2
-  m_SortingOrder: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0.87168145, g: 1, b: 0, a: 1}
+  m_SortingOrder: 1
+  m_Sprite: {fileID: 8240191508659506503, guid: 5bce301b32f8891439e0263a06a8cad6, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 3.46, y: 5.55}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -147,16 +147,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e07a5e711a6a4642ae0f517817ca7ea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  beeColor: {r: 1, g: 0.8285794, b: 0.015686274, a: 1}
-  beeScale: 1
+  beeScale: 0.1
   hoverScaleMultiplier: 1.1
-  moveSpeed: 2
+  moveSpeed: 0.5
   wanderRadius: 1.5
   directionChangeTimeRange: {x: 1.5, y: 3.5}
-  difficultyLevel: 0
-  easyQueenColor: {r: 1, g: 0.3, b: 0, a: 1}
-  mediumQueenColor: {r: 1, g: 0.5, b: 0, a: 1}
-  hardQueenColor: {r: 1, g: 0.8, b: 0.2, a: 1}
-  maxQueenScale: 1.5
-  showCrown: 1
-  showAura: 1
+  horizontalMovementRadius: 2
+  verticalMovementRadius: 2.5
+  useRectangularMovement: 1
+  faceMovementDirection: 1
+  defaultFacingAngle: 90
+  rotationSpeed: 180
+  restProbability: 0.2
+  restTimeRange: {x: 1, y: 2}
+  moveCountBeforeRest: 3
+  stopRotationDuringRest: 1
+  movementCenter: {x: 0, y: 0, z: 0}
+  speed: 0.5
+  useCustomMovementCenter: 0

@@ -1,3 +1,4 @@
+using Game_5;
 using UnityEngine;
 
 public class ClickDetector : MonoBehaviour

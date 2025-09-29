@@ -12,6 +12,9 @@ public class GooseFeather : MonoBehaviour
     public float moveSpeed = 10f;
     public Vector3 mouseOffset = new Vector3(1f, 1f, 0f);
 
+    [Header("攝影機引用 (如果 Camera.main 找不到)")]
+    public Camera customCamera;
+
     private SpriteRenderer featherRenderer;
     private SpriteRenderer borderRenderer;
     private bool isSelected = false;
@@ -21,14 +24,31 @@ public class GooseFeather : MonoBehaviour
     private Quaternion originalRotation;
     private Camera mainCamera;
 
+
     public bool IsSelected => isSelected;
     public bool HasHoney => hasHoney;
+
+    void Start()
+    {
+        Initialize();
+    }
 
     public void Initialize()
     {
         originalPosition = transform.position;
         originalRotation = transform.rotation;
         mainCamera = Camera.main;
+
+        if (mainCamera == null)
+        {
+            mainCamera = customCamera;
+        }
+
+        if (mainCamera == null)
+        {
+            mainCamera = FindObjectOfType<Camera>();
+        }
+
         SetupVisuals();
         SetupBorder();
         SetupCollider();
@@ -116,30 +136,41 @@ public class GooseFeather : MonoBehaviour
         transform.rotation = originalRotation;
     }
 
-    // 使用 Unity 的滑鼠事件系統（和蜂蜜罐一樣）
     void OnMouseEnter()
     {
         // 只有在未選中狀態才顯示 hover 效果
         if (!isSelected)
         {
             ShowBorder(true);
-            Debug.Log("滑鼠進入羽毛 - 顯示黃色邊框");
+
+            // 切換到 hover cursor
+            if (Game_2.CursorManager.Instance != null)
+            {
+                Game_2.CursorManager.Instance.SetHoverCursor();
+            }
+
+            Debug.Log("滑鼠進入羽毛 - 顯示黃色邊框和 hover cursor");
         }
     }
 
     void OnMouseExit()
     {
-        // 只有在未選中狀態才隱藏 hover 效果
         if (!isSelected)
         {
             ShowBorder(false);
-            Debug.Log("滑鼠離開羽毛 - 隱藏邊框");
+
+            // 恢復預設 cursor
+            if (Game_2.CursorManager.Instance != null)
+            {
+                Game_2.CursorManager.Instance.SetDefaultCursor();
+            }
+
+            Debug.Log("滑鼠離開羽毛 - 隱藏邊框和恢復預設 cursor");
         }
     }
 
     void OnMouseDown()
     {
-        // 只有在未選中狀態或需要切換工具時才能被選擇
         if (!isSelected && QueenRearingGameManager.Instance.CanSelectTool())
         {
             SelectFeather();
@@ -164,6 +195,12 @@ public class GooseFeather : MonoBehaviour
         // 保留蜂蜜狀態，不重置 hasHoney 和 Sprite
         ShowBorder(false);
 
+        // 恢復預設 cursor
+        if (Game_2.CursorManager.Instance != null)
+        {
+            Game_2.CursorManager.Instance.SetDefaultCursor();
+        }
+
         // 重新啟用 Collider
         Collider2D collider = GetComponent<Collider2D>();
         if (collider != null)
@@ -173,7 +210,7 @@ public class GooseFeather : MonoBehaviour
         }
 
         // 不通知 GameManager 取消工具選擇，因為要保留狀態
-        Debug.Log("鵝毛保留蜂蜜狀態回到原位");
+        Debug.Log("鵝毛保留蜂蜜狀態回到原位 - 恢復預設 cursor");
     }
 
     private void SelectFeather()
@@ -183,6 +220,13 @@ public class GooseFeather : MonoBehaviour
 
         // 選中時隱藏 hover 邊框
         ShowBorder(false);
+
+        // 選中時保持預設 cursor，不要立即變成 grab
+        // 只有在真正拖動時才變成 grab
+        if (Game_2.CursorManager.Instance != null)
+        {
+            Game_2.CursorManager.Instance.SetDefaultCursor();
+        }
 
         Collider2D collider = GetComponent<Collider2D>();
         if (collider != null)
@@ -197,7 +241,7 @@ public class GooseFeather : MonoBehaviour
             QueenRearingGameManager.Instance.selectedTool = QueenRearingGameManager.Tool.GooseFeather;
         }
 
-        Debug.Log("鵝毛被選擇 - Collider 保持啟用以測試 hover");
+        Debug.Log("鵝毛被選擇 - 保持預設 cursor");
     }
 
     public void DipInHoney()
@@ -233,6 +277,12 @@ public class GooseFeather : MonoBehaviour
         featherRenderer.color = normalColor;
         ShowBorder(false);
 
+        // 恢復預設 cursor
+        if (Game_2.CursorManager.Instance != null)
+        {
+            Game_2.CursorManager.Instance.SetDefaultCursor();
+        }
+
         // 重新啟用 Collider
         Collider2D collider = GetComponent<Collider2D>();
         if (collider != null)
@@ -241,12 +291,7 @@ public class GooseFeather : MonoBehaviour
             Debug.Log("鵝毛回原位時啟用 Collider");
         }
 
-        // 通知 GameManager
-        // if (QueenRearingGameManager.Instance != null)
-        // {
-        //     QueenRearingGameManager.Instance.selectedTool = QueenRearingGameManager.Tool.None;
-        // }
-        Debug.Log("鵝毛回到原位");
+        Debug.Log("鵝毛回到原位 - 恢復預設 cursor");
     }
 
     public void ResetFeather()
@@ -270,6 +315,12 @@ public class GooseFeather : MonoBehaviour
         featherRenderer.color = normalColor;
         ShowBorder(false);
 
+        // 恢復預設 cursor
+        if (Game_2.CursorManager.Instance != null)
+        {
+            Game_2.CursorManager.Instance.SetDefaultCursor();
+        }
+
         // 重新啟用 Collider
         Collider2D collider = GetComponent<Collider2D>();
         if (collider != null)
@@ -280,7 +331,7 @@ public class GooseFeather : MonoBehaviour
 
         QueenRearingGameManager.Instance.SelectTool(QueenRearingGameManager.Tool.GooseFeather);
 
-        Debug.Log("鵝毛已完全重置");
+        Debug.Log("鵝毛已完全重置 - 恢復預設 cursor");
     }
 
     private void ShowBorder(bool show)

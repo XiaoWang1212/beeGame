@@ -1,12 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Game_2;
 
 public class SpecialCup : MonoBehaviour
 {
     [Header("杯子設置")]
-    public Sprite normalCupSprite;          // 普通杯子圖片
-    public Sprite honeyedCupSprite;         // 有蜂王乳的杯子圖片
-    public Sprite larvaeCupSprite;          // 有幼蟲的杯子圖片（新增）
+    public Sprite normalCupSprite;
+    public Sprite honeyedCupSprite;
+    public Sprite larvaeCupSprite;
 
     public Color hoverColor = Color.yellow;
     public float interactionDistance = 2f;
@@ -19,20 +20,49 @@ public class SpecialCup : MonoBehaviour
     private bool isHovering = false;
 
     public bool HasRoyalJelly => hasRoyalJelly;
+    public bool HasLarva => containedLarvae.Count > 0;
     public int CupID => cupID;
-    public bool HasLarvae => containedLarvae.Count > 0;
 
+    // 獲取當前應該使用的工具
+    private GooseFeather GetCurrentGooseFeather()
+    {
+        var gameManager = QueenRearingGameManager.Instance;
+        if (gameManager == null) return null;
+
+        // 檢查是否在教學模式
+        if (Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)
+        {
+            return gameManager.tutorialGooseFeather;
+        }
+        else
+        {
+            return gameManager.gooseFeather;
+        }
+    }
+
+    private Tweezers GetCurrentTweezers()
+    {
+        var gameManager = QueenRearingGameManager.Instance;
+        if (gameManager == null) return null;
+
+        // 檢查是否在教學模式
+        if (Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)
+        {
+            return gameManager.tutorialTweezers;
+        }
+        else
+        {
+            return gameManager.tweezers;
+        }
+    }
 
     void Start()
     {
-        SetupVisuals(); // 先設置視覺效果
-        SetupBorder();  // 再設置邊框
+        SetupVisuals();
+        SetupBorder();
     }
 
-    void Update()
-    {
-        CheckForFeatherInteraction();
-    }
+
 
     public void Initialize(int id)
     {
@@ -49,7 +79,6 @@ public class SpecialCup : MonoBehaviour
             cupRenderer = gameObject.AddComponent<SpriteRenderer>();
         }
 
-        // 設置初始圖片
         if (normalCupSprite != null)
         {
             cupRenderer.sprite = normalCupSprite;
@@ -58,14 +87,12 @@ public class SpecialCup : MonoBehaviour
 
     private void SetupBorder()
     {
-        // 確保 cupRenderer 已經初始化
         if (cupRenderer == null)
         {
             Debug.LogError("cupRenderer 為 null！請先調用 SetupVisuals()");
             return;
         }
 
-        // 清理舊的邊框
         Transform existingBorder = transform.Find("Border");
         if (existingBorder != null)
         {
@@ -80,180 +107,70 @@ public class SpecialCup : MonoBehaviour
 
         borderRenderer = borderGO.AddComponent<SpriteRenderer>();
 
-        // 確保 cupRenderer.sprite 不為 null
         if (cupRenderer.sprite != null)
         {
             borderRenderer.sprite = cupRenderer.sprite;
         }
-        else
-        {
-            Debug.LogWarning("cupRenderer.sprite 為 null，邊框將沒有圖片");
-        }
 
         borderRenderer.color = hoverColor;
+        borderRenderer.sortingLayerName = cupRenderer.sortingLayerName;
+        borderRenderer.sortingLayerID = cupRenderer.sortingLayerID;
         borderRenderer.sortingOrder = cupRenderer.sortingOrder - 1;
         borderRenderer.enabled = false;
 
         Debug.Log($"杯子 {cupID} 邊框設置完成");
     }
 
-    private void CheckForFeatherInteraction()
-    {
-        var gameManager = QueenRearingGameManager.Instance;
-        if (gameManager == null) return;
-
-        // 檢查是否有選中且沾了蜂蜜的鵝毛
-        if (gameManager.GetSelectedTool() == QueenRearingGameManager.Tool.GooseFeather)
-        {
-            var feather = gameManager.gooseFeather;
-            if (feather != null && feather.IsSelected && feather.HasHoney && !hasRoyalJelly)
-            {
-                float distance = Vector3.Distance(transform.position, feather.transform.position);
-
-                // 距離檢測 hover 效果
-                if (distance <= interactionDistance)
-                {
-                    if (!isHovering)
-                    {
-                        isHovering = true;
-                        ShowBorder(true);
-                        Debug.Log($"沾蜂蜜的鵝毛靠近杯子 {cupID}");
-                    }
-
-                    // 點擊檢測
-                    if (Input.GetMouseButtonDown(0))
-                    {
-                        ApplyRoyalJelly();
-                        feather.ApplyToCup(); // 讓鵝毛回到原位
-                        Debug.Log($"杯子 {cupID} 已塗抹蜂王乳！");
-                    }
-                }
-                else
-                {
-                    if (isHovering)
-                    {
-                        isHovering = false;
-                        ShowBorder(false);
-                    }
-                }
-            }
-            else
-            {
-                if (isHovering)
-                {
-                    isHovering = false;
-                    ShowBorder(false);
-                }
-            }
-        }
-        else
-        {
-            if (isHovering)
-            {
-                isHovering = false;
-                ShowBorder(false);
-            }
-        }
-    }
-
-    public void ApplyRoyalJelly()
-    {
-        hasRoyalJelly = true;
-
-        // 更新杯子圖片
-        UpdateCupSprite();
-
-        Debug.Log($"杯子 {cupID} 已塗抹蜂王乳，圖片已更換");
-    }
-
-    public void AddLarva()
-    {
-        if (!HasLarvae)
-        {
-            containedLarvae.Add(null); // 簡單記錄數量
-
-            // 更新杯子圖片為有幼蟲的狀態
-            UpdateCupSprite();
-
-            Debug.Log($"杯子 {cupID} 添加幼蟲，目前數量: {containedLarvae.Count}");
-        }
-    }
-
-    private void UpdateCupSprite()
-    {
-        Sprite targetSprite = null;
-
-        // 決定要使用的圖片
-        if (HasLarvae)
-        {
-            // 如果有幼蟲，使用幼蟲杯子圖片
-            targetSprite = larvaeCupSprite;
-        }
-        else if (hasRoyalJelly)
-        {
-            // 如果有蜂王乳但沒幼蟲，使用蜂王乳杯子圖片
-            targetSprite = honeyedCupSprite;
-        }
-        else
-        {
-            // 普通狀態
-            targetSprite = normalCupSprite;
-        }
-
-        // 更新主圖片
-        if (targetSprite != null && cupRenderer != null)
-        {
-            cupRenderer.sprite = targetSprite;
-        }
-
-        // 更新邊框圖片
-        if (targetSprite != null && borderRenderer != null)
-        {
-            borderRenderer.sprite = targetSprite;
-        }
-
-        Debug.Log($"杯子 {cupID} 圖片已更新 - 有幼蟲: {HasLarvae}, 有蜂王乳: {hasRoyalJelly}");
-    }
-
-    public Vector3 GetLarvaPosition()
-    {
-        // 返回杯子內幼蟲應該放置的位置（中心位置）
-        return transform.position + new Vector3(0, -0.2f, 0);
-    }
-
-    public void ResetCup()
-    {
-        hasRoyalJelly = false;
-        containedLarvae.Clear();
-        isHovering = false;
-
-        // 更新圖片回到普通狀態
-        UpdateCupSprite();
-        ShowBorder(false);
-
-        Debug.Log($"杯子 {cupID} 已重置");
-    }
-
-    // 保留原始的滑鼠事件作為備用
     void OnMouseEnter()
     {
         var gameManager = QueenRearingGameManager.Instance;
         if (gameManager != null && gameManager.GetSelectedTool() == QueenRearingGameManager.Tool.Tweezers)
         {
-            var tweezers = gameManager.tweezers;
-            // 只有當鑷子夾著幼蟲且杯子能接受幼蟲時才顯示邊框
+            var tweezers = GetCurrentTweezers(); // 使用當前模式的鑷子
             if (tweezers != null && tweezers.HasLarva && CanAcceptLarva())
             {
                 ShowBorder(true);
+
+                if (Input.GetMouseButton(0))
+                {
+                    if (Game_2.CursorManager.Instance != null)
+                    {
+                        Game_2.CursorManager.Instance.SetGrabCursor();
+                    }
+                }
+                else
+                {
+                    if (Game_2.CursorManager.Instance != null)
+                    {
+                        Game_2.CursorManager.Instance.SetHoverCursor();
+                    }
+                }
+
                 Debug.Log($"鑷子夾著蟲進入杯子 {cupID} - 顯示邊框");
             }
         }
         else if (gameManager != null && gameManager.GetSelectedTool() == QueenRearingGameManager.Tool.GooseFeather)
         {
-            var feather = gameManager.gooseFeather;
+            var feather = GetCurrentGooseFeather(); // 使用當前模式的鵝毛
             if (feather != null && feather.HasHoney && !hasRoyalJelly)
             {
                 ShowBorder(true);
+
+                if (Input.GetMouseButton(0))
+                {
+                    if (Game_2.CursorManager.Instance != null)
+                    {
+                        Game_2.CursorManager.Instance.SetGrabCursor();
+                    }
+                }
+                else
+                {
+                    if (Game_2.CursorManager.Instance != null)
+                    {
+                        Game_2.CursorManager.Instance.SetHoverCursor();
+                    }
+                }
+
                 Debug.Log($"鵝毛有蜂蜜進入杯子 {cupID} - 顯示邊框");
             }
         }
@@ -261,9 +178,14 @@ public class SpecialCup : MonoBehaviour
 
     void OnMouseExit()
     {
-        if (!isHovering) // 只有在距離檢測沒有觸發時才隱藏
+        if (!isHovering)
         {
             ShowBorder(false);
+
+            if (Game_2.CursorManager.Instance != null)
+            {
+                Game_2.CursorManager.Instance.SetDefaultCursor();
+            }
         }
     }
 
@@ -274,21 +196,31 @@ public class SpecialCup : MonoBehaviour
             var gameManager = QueenRearingGameManager.Instance;
             if (gameManager != null)
             {
-                // 檢查是否選中了鵝毛工具
+                Debug.Log($"杯子 {cupID} 被點擊，當前選擇的工具: {gameManager.GetSelectedTool()}");
+                Debug.Log($"教學模式: {(Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)}");
+
                 if (gameManager.GetSelectedTool() == QueenRearingGameManager.Tool.GooseFeather)
                 {
-                    var feather = gameManager.gooseFeather;
+                    var feather = GetCurrentGooseFeather(); // 使用當前模式的鵝毛
+                    Debug.Log($"獲取到的鵝毛: {(feather != null ? feather.name : "null")}");
 
-                    // 只有當鵝毛被選中、有蜂蜜且杯子還沒塗抹過時才能塗抹
                     if (feather != null && feather.IsSelected && feather.HasHoney && !hasRoyalJelly)
                     {
                         ApplyRoyalJelly();
-                        feather.ApplyToCup(); // 這會調用 ResetFeather()
+                        feather.ApplyToCup();
+
+                        // 通知教學系統蜂王乳已製作
+                        if (Game_2.TutorialManager.Instance != null && Game_2.TutorialManager.Instance.IsTutorialActive)
+                        {
+                            Game_2.TutorialManager.Instance.NotifyJellyApplied();
+                            Debug.Log("通知教學系統：蜂王乳已製作");
+                        }
+
                         Debug.Log($"杯子 {cupID} 已塗抹蜂王乳！");
                     }
                     else
                     {
-                        // 調試信息：為什麼無法塗抹
+                        // 調試信息
                         if (feather == null)
                             Debug.Log("沒有找到鵝毛");
                         else if (!feather.IsSelected)
@@ -307,6 +239,68 @@ public class SpecialCup : MonoBehaviour
         }
     }
 
+    public void ApplyRoyalJelly()
+    {
+        hasRoyalJelly = true;
+        UpdateCupSprite();
+        Debug.Log($"杯子 {cupID} 已塗抹蜂王乳，圖片已更換");
+    }
+
+    public void AddLarva()
+    {
+        if (!HasLarva)
+        {
+            containedLarvae.Add(null);
+            UpdateCupSprite();
+            Debug.Log($"杯子 {cupID} 添加幼蟲，目前數量: {containedLarvae.Count}");
+        }
+    }
+
+    private void UpdateCupSprite()
+    {
+        Sprite targetSprite = null;
+
+        if (HasLarva)
+        {
+            targetSprite = larvaeCupSprite;
+        }
+        else if (hasRoyalJelly)
+        {
+            targetSprite = honeyedCupSprite;
+        }
+        else
+        {
+            targetSprite = normalCupSprite;
+        }
+
+        if (targetSprite != null && cupRenderer != null)
+        {
+            cupRenderer.sprite = targetSprite;
+        }
+
+        if (targetSprite != null && borderRenderer != null)
+        {
+            borderRenderer.sprite = targetSprite;
+        }
+
+        Debug.Log($"杯子 {cupID} 圖片已更新 - 有幼蟲: {HasLarva}, 有蜂王乳: {hasRoyalJelly}");
+    }
+
+    public Vector3 GetLarvaPosition()
+    {
+        return transform.position + new Vector3(0, -0.2f, 0);
+    }
+
+    public void ResetCup()
+    {
+        hasRoyalJelly = false;
+        containedLarvae.Clear();
+        isHovering = false;
+        UpdateCupSprite();
+        ShowBorder(false);
+        Debug.Log($"杯子 {cupID} 已重置");
+    }
+
     private void ShowBorder(bool show)
     {
         if (borderRenderer != null)
@@ -315,10 +309,9 @@ public class SpecialCup : MonoBehaviour
         }
     }
 
-    // 調試用：顯示互動範圍
     void OnDrawGizmos()
     {
-        if (!hasRoyalJelly) // 只有沒塗抹時才顯示範圍
+        if (!hasRoyalJelly)
         {
             Gizmos.color = Color.blue;
             Gizmos.DrawWireSphere(transform.position, interactionDistance);
@@ -327,7 +320,7 @@ public class SpecialCup : MonoBehaviour
 
     public bool CanAcceptLarva()
     {
-        return hasRoyalJelly && !HasLarvae;
+        return hasRoyalJelly && !HasLarva;
     }
 
     public bool IsShowingBorder()
